@@ -1,4 +1,5 @@
 import { VideoInterview } from "@/components/VideoInterview";
+import { RecruitmentOfficer } from "@/components/RecruitmentOfficer";
 
 const Index = () => {
   return (
@@ -7,7 +8,10 @@ const Index = () => {
         <h1 className="text-4xl font-bold text-gray-900 mb-4">AI-Powered Interview Platform</h1>
         <p className="text-xl text-gray-600">Experience the future of recruitment</p>
       </div>
-      <VideoInterview />
+      <div className="container mx-auto space-y-6">
+        <VideoInterview />
+        <RecruitmentOfficer />
+      </div>
     </div>
   );
 };
