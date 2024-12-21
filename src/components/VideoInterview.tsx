@@ -16,6 +16,7 @@ export const VideoInterview = () => {
   const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Cleanup function
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -25,6 +26,22 @@ export const VideoInterview = () => {
       }
     };
   }, [stream]);
+
+  // Start a new timer effect when recording starts/stops
+  useEffect(() => {
+    if (isRecording && startTimeRef.current) {
+      intervalRef.current = setInterval(() => {
+        const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current!) / 1000);
+        setTime(elapsedSeconds);
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRecording]);
 
   const startInterview = async () => {
     try {
@@ -36,17 +53,9 @@ export const VideoInterview = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      setIsRecording(true);
       startTimeRef.current = Date.now();
       setTime(0);
-      
-      // Start the timer
-      intervalRef.current = setInterval(() => {
-        if (startTimeRef.current) {
-          const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
-          setTime(elapsedSeconds);
-        }
-      }, 1000);
+      setIsRecording(true);
 
       toast({
         title: "Interview Started",
@@ -94,13 +103,13 @@ export const VideoInterview = () => {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
       setIsRecording(false);
-      startTimeRef.current = null;
+      // Don't reset the time when stopping
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
       toast({
         title: "Interview Completed",
-        description: "Your interview has been saved",
+        description: `Interview duration: ${formatTime(time)}`,
       });
     }
   };
@@ -117,11 +126,9 @@ export const VideoInterview = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Video Interview</h2>
           <div className="flex items-center gap-4">
-            {isRecording && (
-              <div className="text-sm font-medium">
-                Time: {formatTime(time)}
-              </div>
-            )}
+            <div className="text-sm font-medium">
+              Time: {formatTime(time)}
+            </div>
             {analysis && (
               <div className="text-sm text-muted-foreground">
                 Current Analysis: {analysis}
