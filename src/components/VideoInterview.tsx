@@ -54,7 +54,10 @@ export const VideoInterview = () => {
             ctx.drawImage(videoRef.current, 0, 0);
             const imageData = canvas.toDataURL('image/jpeg');
             const result = await classifier(imageData);
-            setAnalysis(result[0].label);
+            // Handle the array of predictions, taking the first (most likely) prediction
+            if (Array.isArray(result) && result.length > 0) {
+              setAnalysis(result[0].label);
+            }
           }
         }
       }, 5000);
