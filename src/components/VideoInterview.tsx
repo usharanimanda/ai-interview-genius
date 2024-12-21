@@ -13,6 +13,7 @@ export const VideoInterview = () => {
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [time, setTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -36,11 +37,15 @@ export const VideoInterview = () => {
         videoRef.current.srcObject = mediaStream;
       }
       setIsRecording(true);
+      startTimeRef.current = Date.now();
       setTime(0);
       
       // Start the timer
       intervalRef.current = setInterval(() => {
-        setTime(prev => prev + 1);
+        if (startTimeRef.current) {
+          const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          setTime(elapsedSeconds);
+        }
       }, 1000);
 
       toast({
@@ -89,6 +94,7 @@ export const VideoInterview = () => {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
       setIsRecording(false);
+      startTimeRef.current = null;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
