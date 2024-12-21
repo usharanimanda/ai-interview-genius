@@ -11,11 +11,16 @@ export const VideoInterview = () => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [time, setTime] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
     };
   }, [stream]);
@@ -31,6 +36,13 @@ export const VideoInterview = () => {
         videoRef.current.srcObject = mediaStream;
       }
       setIsRecording(true);
+      setTime(0);
+      
+      // Start the timer
+      intervalRef.current = setInterval(() => {
+        setTime(prev => prev + 1);
+      }, 1000);
+
       toast({
         title: "Interview Started",
         description: "Your video interview is now recording",
@@ -54,8 +66,7 @@ export const VideoInterview = () => {
             ctx.drawImage(videoRef.current, 0, 0);
             const imageData = canvas.toDataURL('image/jpeg');
             const result = await classifier(imageData);
-            // Handle the array of predictions, taking the first (most likely) prediction
-            if (Array.isArray(result) && result.length > 0) {
+            if (Array.isArray(result) && result.length > 0 && 'label' in result[0]) {
               setAnalysis(result[0].label);
             }
           }
@@ -78,6 +89,9 @@ export const VideoInterview = () => {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
       setIsRecording(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
       toast({
         title: "Interview Completed",
         description: "Your interview has been saved",
@@ -85,16 +99,29 @@ export const VideoInterview = () => {
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="container mx-auto p-6 animate-fade-in">
       <Card className="p-6 space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Video Interview</h2>
-          {analysis && (
-            <div className="text-sm text-muted-foreground">
-              Current Analysis: {analysis}
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {isRecording && (
+              <div className="text-sm font-medium">
+                Time: {formatTime(time)}
+              </div>
+            )}
+            {analysis && (
+              <div className="text-sm text-muted-foreground">
+                Current Analysis: {analysis}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
