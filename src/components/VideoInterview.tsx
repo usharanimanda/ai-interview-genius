@@ -17,6 +17,7 @@ export const VideoInterview = () => {
   const [time, setTime] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number | null>(null);
+  const classifierRef = useRef<any>(null);
 
   useEffect(() => {
     return () => {
@@ -44,16 +45,77 @@ export const VideoInterview = () => {
     };
   }, [isRecording]);
 
+  const initializeClassifier = async () => {
+    try {
+      console.log('Initializing classifier...');
+      classifierRef.current = await pipeline(
+        'image-classification',
+        'onnx-community/mobilenetv4_conv_small.e2400_r224_in1k',
+        { device: 'webgpu' }
+      );
+      console.log('Classifier initialized successfully');
+    } catch (error) {
+      console.error('Error initializing classifier:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to initialize video analysis",
+      });
+    }
+  };
+
+  const captureAndAnalyzeFrame = async () => {
+    if (!videoRef.current || !videoRef.current.videoWidth) {
+      console.log('Video not ready for capture');
+      return;
+    }
+
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        console.log('Capturing frame...');
+        ctx.drawImage(videoRef.current, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        
+        if (!classifierRef.current) {
+          console.log('Classifier not initialized, initializing...');
+          await initializeClassifier();
+        }
+        
+        if (classifierRef.current) {
+          console.log('Analyzing frame...');
+          const result = await classifierRef.current(imageData);
+          if (Array.isArray(result) && result.length > 0 && 'label' in result[0]) {
+            console.log('Analysis result:', result[0].label);
+            setAnalysis(result[0].label);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing frame:', error);
+    }
+  };
+
   const startInterview = async () => {
     try {
+      console.log('Starting interview...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true
       });
+      
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
+      
+      // Initialize classifier before starting the interview
+      await initializeClassifier();
+      
       setIsRecording(true);
       startTimeRef.current = Date.now();
       setTime(0);
@@ -63,32 +125,16 @@ export const VideoInterview = () => {
         description: "Connected with AI Interviewer",
       });
 
-      // Initialize emotion detection
-      const classifier = await pipeline(
-        "image-classification",
-        "onnx-community/mobilenetv4_conv_small.e2400_r224_in1k",
-        { device: "webgpu" }
-      );
+      // Wait for video to be ready before starting analysis
+      if (videoRef.current) {
+        videoRef.current.onloadedmetadata = () => {
+          // Start periodic analysis after video is ready
+          const analysisInterval = setInterval(captureAndAnalyzeFrame, 5000);
+          // Store interval for cleanup
+          intervalRef.current = analysisInterval;
+        };
+      }
 
-      // Periodic emotion analysis
-      const analysisInterval = setInterval(async () => {
-        if (videoRef.current) {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(videoRef.current, 0, 0);
-            const imageData = canvas.toDataURL('image/jpeg');
-            const result = await classifier(imageData);
-            if (Array.isArray(result) && result.length > 0 && 'label' in result[0]) {
-              setAnalysis(result[0].label);
-            }
-          }
-        }
-      }, 5000);
-
-      return () => clearInterval(analysisInterval);
     } catch (error) {
       console.error('Error accessing media devices:', error);
       toast({
