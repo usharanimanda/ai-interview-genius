@@ -4,6 +4,9 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { pipeline } from '@huggingface/transformers';
 import { Camera, Mic, Video } from 'lucide-react';
+import { AIAvatar } from './ai/AIAvatar';
+import { VideoControls } from './video/VideoControls';
+import { VideoDisplay } from './video/VideoDisplay';
 
 export const VideoInterview = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -16,7 +19,6 @@ export const VideoInterview = () => {
   const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Cleanup function
     return () => {
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -27,7 +29,6 @@ export const VideoInterview = () => {
     };
   }, [stream]);
 
-  // Start a new timer effect when recording starts/stops
   useEffect(() => {
     if (isRecording && startTimeRef.current) {
       intervalRef.current = setInterval(() => {
@@ -57,16 +58,9 @@ export const VideoInterview = () => {
       startTimeRef.current = Date.now();
       setTime(0);
       
-      intervalRef.current = setInterval(() => {
-        if (startTimeRef.current) {
-          const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
-          setTime(elapsedSeconds);
-        }
-      }, 1000);
-
       toast({
         title: "Interview Started",
-        description: "Connected with recruitment officer",
+        description: "Connected with AI Interviewer",
       });
 
       // Initialize emotion detection
@@ -110,7 +104,6 @@ export const VideoInterview = () => {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
       setIsRecording(false);
-      // Don't reset the time when stopping
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
@@ -147,66 +140,15 @@ export const VideoInterview = () => {
         </div>
         
         <div className="grid grid-cols-2 gap-4">
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-            {!stream && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                <div className="text-center space-y-4">
-                  <div className="flex justify-center space-x-2">
-                    <Camera className="w-8 h-8" />
-                    <Mic className="w-8 h-8" />
-                  </div>
-                  <p>Click Start to begin your interview</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Recruitment Officer Video */}
-          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-            {isRecording ? (
-              <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                <div className="text-white text-center">
-                  <div className="mb-2">
-                    <Camera className="w-8 h-8 mx-auto" />
-                  </div>
-                  <p className="font-medium">Recruitment Officer</p>
-                  <p className="text-sm opacity-80">Connected</p>
-                </div>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-                <p>Waiting to connect...</p>
-              </div>
-            )}
-          </div>
+          <VideoDisplay videoRef={videoRef} stream={stream} />
+          <AIAvatar isRecording={isRecording} />
         </div>
 
-        <div className="flex justify-center space-x-4">
-          {!isRecording ? (
-            <Button
-              onClick={startInterview}
-              className="space-x-2"
-            >
-              <Video className="w-4 h-4" />
-              <span>Start Interview</span>
-            </Button>
-          ) : (
-            <Button
-              variant="destructive"
-              onClick={stopInterview}
-              className="space-x-2"
-            >
-              <span>End Interview</span>
-            </Button>
-          )}
-        </div>
+        <VideoControls 
+          isRecording={isRecording}
+          onStart={startInterview}
+          onStop={stopInterview}
+        />
       </Card>
     </div>
   );
