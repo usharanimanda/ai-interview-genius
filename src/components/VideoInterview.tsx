@@ -53,13 +53,20 @@ export const VideoInterview = () => {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
+      setIsRecording(true);
       startTimeRef.current = Date.now();
       setTime(0);
-      setIsRecording(true);
+      
+      intervalRef.current = setInterval(() => {
+        if (startTimeRef.current) {
+          const elapsedSeconds = Math.floor((Date.now() - startTimeRef.current) / 1000);
+          setTime(elapsedSeconds);
+        }
+      }, 1000);
 
       toast({
         title: "Interview Started",
-        description: "Your video interview is now recording",
+        description: "Connected with recruitment officer",
       });
 
       // Initialize emotion detection
@@ -126,9 +133,11 @@ export const VideoInterview = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Video Interview</h2>
           <div className="flex items-center gap-4">
-            <div className="text-sm font-medium">
-              Time: {formatTime(time)}
-            </div>
+            {isRecording && (
+              <div className="text-sm font-medium">
+                Time: {formatTime(time)}
+              </div>
+            )}
             {analysis && (
               <div className="text-sm text-muted-foreground">
                 Current Analysis: {analysis}
@@ -137,26 +146,46 @@ export const VideoInterview = () => {
           </div>
         </div>
         
-        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          />
-          
-          {!stream && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
-              <div className="text-center space-y-4">
-                <div className="flex justify-center space-x-2">
-                  <Camera className="w-8 h-8" />
-                  <Mic className="w-8 h-8" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+            {!stream && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center space-x-2">
+                    <Camera className="w-8 h-8" />
+                    <Mic className="w-8 h-8" />
+                  </div>
+                  <p>Click Start to begin your interview</p>
                 </div>
-                <p>Click Start to begin your interview</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          
+          {/* Recruitment Officer Video */}
+          <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+            {isRecording ? (
+              <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                <div className="text-white text-center">
+                  <div className="mb-2">
+                    <Camera className="w-8 h-8 mx-auto" />
+                  </div>
+                  <p className="font-medium">Recruitment Officer</p>
+                  <p className="text-sm opacity-80">Connected</p>
+                </div>
+              </div>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                <p>Waiting to connect...</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-center space-x-4">
