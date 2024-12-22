@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { MessageCircle, Save, Camera, Mic } from 'lucide-react';
+import { AIInterviewer } from './AIInterviewer';
 
 export const RecruitmentOfficer = () => {
   const [notes, setNotes] = useState('');
@@ -38,15 +39,11 @@ export const RecruitmentOfficer = () => {
               <Save className="w-4 h-4" />
               <span>Save Notes</span>
             </Button>
-            <Button variant="outline" className="space-x-2">
-              <MessageCircle className="w-4 h-4" />
-              <span>Add Question</span>
-            </Button>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold">Interview Controls</h3>
+          <AIInterviewer />
           <div className="bg-muted p-4 rounded-lg">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
